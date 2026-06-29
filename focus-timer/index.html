@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Focus Timer</title>
+<style>
+  :root {
+    --bg: #1a1b26;
+    --card: #24273a;
+    --accent: #7aa2f7;
+    --accent2: #f7768e;
+    --text: #c0caf5;
+    --muted: #565f89;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: var(--text);
+    padding: 20px;
+  }
+  .app {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 32px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  h1 {
+    text-align: center;
+    font-size: 1.3rem;
+    margin: 0 0 24px;
+    color: var(--accent);
+  }
+  .modes {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 10px;
+    background: #1f2335;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: 0.2s;
+  }
+  .mode-btn.active {
+    background: var(--accent);
+    color: #1a1b26;
+    font-weight: bold;
+  }
+  .timer-display {
+    text-align: center;
+    font-size: 4.5rem;
+    font-weight: 700;
+    margin: 10px 0 24px;
+    letter-spacing: 2px;
+  }
+  .ring-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+  .controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 28px;
+  }
+  .controls button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.2s;
+  }
+  #startPause {
+    background: var(--accent);
+    color: #1a1b26;
+  }
+  #reset {
+    background: #1f2335;
+    color: var(--text);
+  }
+  .controls button:hover { transform: translateY(-1px); }
+  .stats {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 24px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .stats b { color: var(--text); font-size: 1.1rem; display: block; }
+  .tasks {
+    border-top: 1px solid #2f3349;
+    padding-top: 16px;
+  }
+  .tasks h2 {
+    font-size: 0.95rem;
+    margin: 0 0 10px;
+    color: var(--muted);
+  }
+  .task-input {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .task-input input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #2f3349;
+    background: #1f2335;
+    color: var(--text);
+    outline: none;
+  }
+  .task-input button {
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent);
+    color: #1a1b26;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  #taskList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 160px;
+    overflow-y: auto;
+  }
+  #taskList li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 4px;
+    border-bottom: 1px solid #2f3349;
+    font-size: 0.9rem;
+  }
+  #taskList li.done span { text-decoration: line-through; color: var(--muted); }
+  #taskList li span { flex: 1; }
+  #taskList li button {
+    background: none;
+    border: none;
+    color: var(--accent2);
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  #taskList li input[type=checkbox] { width: 18px; height: 18px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>🎯 Focus Timer</h1>
+
+  <div class="modes">
+    <button class="mode-btn active" data-mins="25" data-label="Enfoque">Enfoque 25</button>
+    <button class="mode-btn" data-mins="5" data-label="Pausa corta">Pausa 5</button>
+    <button class="mode-btn" data-mins="15" data-label="Pausa larga">Pausa 15</button>
+  </div>
+
+  <div class="timer-display" id="display">25:00</div>
+
+  <div class="controls">
+    <button id="startPause">▶ Iniciar</button>
+    <button id="reset">↺ Reiniciar</button>
+  </div>
+
+  <div class="stats">
+    <div><b id="sessionsToday">0</b> sesiones hoy</div>
+    <div><b id="minutesToday">0</b> minutos enfocados</div>
+  </div>
+
+  <div class="tasks">
+    <h2>Tareas de hoy</h2>
+    <div class="task-input">
+      <input type="text" id="taskInput" placeholder="Agregar tarea...">
+      <button id="addTask">+</button>
+    </div>
+    <ul id="taskList"></ul>
+  </div>
+</div>
+
+<audio id="dingSound" preload="auto">
+  <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav">
+</audio>
+
+<script>
+  const display = document.getElementById('display');
+  const startPauseBtn = document.getElementById('startPause');
+  const resetBtn = document.getElementById('reset');
+  const modeBtns = document.querySelectorAll('.mode-btn');
+  const sessionsTodayEl = document.getElementById('sessionsToday');
+  const minutesTodayEl = document.getElementById('minutesToday');
+  const taskInput = document.getElementById('taskInput');
+  const addTaskBtn = document.getElementById('addTask');
+  const taskList = document.getElementById('taskList');
+
+  let totalSeconds = 25 * 60;
+  let remaining = totalSeconds;
+  let running = false;
+  let timerId = null;
+  let currentLabel = 'Enfoque';
+
+  const todayKey = () => 'focusTimer_' + new Date().toISOString().slice(0,10);
+
+  function loadStats() {
+    const data = JSON.parse(localStorage.getItem(todayKey()) || '{"sessions":0,"minutes":0}');
+    sessionsTodayEl.textContent = data.sessions;
+    minutesTodayEl.textContent = data.minutes;
+  }
+
+  function saveSession(minutes) {
+    const data = JSON.parse(localStorage.getItem(todayKey()) || '{"sessions":0,"minutes":0}');
+    data.sessions += 1;
+    data.minutes += minutes;
+    localStorage.setItem(todayKey(), JSON.stringify(data));
+    loadStats();
+  }
+
+  function updateDisplay() {
+    const m = Math.floor(remaining / 60).toString().padStart(2, '0');
+    const s = (remaining % 60).toString().padStart(2, '0');
+    display.textContent = `${m}:${s}`;
+    document.title = `${m}:${s} - ${currentLabel}`;
+  }
+
+  function tick() {
+    remaining--;
+    updateDisplay();
+    if (remaining <= 0) {
+      clearInterval(timerId);
+      running = false;
+      startPauseBtn.textContent = '▶ Iniciar';
+      document.getElementById('dingSound').play().catch(()=>{});
+      if (currentLabel === 'Enfoque') {
+        saveSession(Math.round(totalSeconds / 60));
+      }
+      alert(`¡${currentLabel} terminado!`);
+      remaining = totalSeconds;
+      updateDisplay();
+    }
+  }
+
+  startPauseBtn.addEventListener('click', () => {
+    if (running) {
+      clearInterval(timerId);
+      running = false;
+      startPauseBtn.textContent = '▶ Iniciar';
+    } else {
+      running = true;
+      startPauseBtn.textContent = '⏸ Pausar';
+      timerId = setInterval(tick, 1000);
+    }
+  });
+
+  resetBtn.addEventListener('click', () => {
+    clearInterval(timerId);
+    running = false;
+    startPauseBtn.textContent = '▶ Iniciar';
+    remaining = totalSeconds;
+    updateDisplay();
+  });
+
+  modeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      modeBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      clearInterval(timerId);
+      running = false;
+      startPauseBtn.textContent = '▶ Iniciar';
+      totalSeconds = parseInt(btn.dataset.mins) * 60;
+      remaining = totalSeconds;
+      currentLabel = btn.dataset.label;
+      updateDisplay();
+    });
+  });
+
+  function loadTasks() {
+    const tasks = JSON.parse(localStorage.getItem(todayKey() + '_tasks') || '[]');
+    taskList.innerHTML = '';
+    tasks.forEach((t, i) => renderTask(t, i));
+  }
+
+  function saveTasks(tasks) {
+    localStorage.setItem(todayKey() + '_tasks', JSON.stringify(tasks));
+  }
+
+  function getTasks() {
+    return JSON.parse(localStorage.getItem(todayKey() + '_tasks') || '[]');
+  }
+
+  function renderTask(task, index) {
+    const li = document.createElement('li');
+    if (task.done) li.classList.add('done');
+    li.innerHTML = `
+      <input type="checkbox" ${task.done ? 'checked' : ''}>
+      <span></span>
+      <button>✕</button>
+    `;
+    li.querySelector('span').textContent = task.text;
+    li.querySelector('input').addEventListener('change', () => {
+      const tasks = getTasks();
+      tasks[index].done = !tasks[index].done;
+      saveTasks(tasks);
+      loadTasks();
+    });
+    li.querySelector('button').addEventListener('click', () => {
+      const tasks = getTasks();
+      tasks.splice(index, 1);
+      saveTasks(tasks);
+      loadTasks();
+    });
+    taskList.appendChild(li);
+  }
+
+  function addTask() {
+    const text = taskInput.value.trim();
+    if (!text) return;
+    const tasks = getTasks();
+    tasks.push({ text, done: false });
+    saveTasks(tasks);
+    taskInput.value = '';
+    loadTasks();
+  }
+
+  addTaskBtn.addEventListener('click', addTask);
+  taskInput.addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+
+  updateDisplay();
+  loadStats();
+  loadTasks();
+</script>
+</body>
+</html>
